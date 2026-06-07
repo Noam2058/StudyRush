@@ -10,9 +10,16 @@ const COVER_ROTATE = ['var(--cover-peach)', 'var(--cover-blue)', 'var(--cover-cr
 
 export default function DashboardPage() {
   const navigate = useNavigate()
-  const { user } = useUser()
+  const { user, loading } = useUser()
   const { t } = useLang()
   const { notebooks } = useNotebooks()
+
+  // Protect route: redirect to login if no authenticated user
+  useEffect(() => {
+    if (!loading && (!user || !user.email)) {
+      navigate('/login')
+    }
+  }, [loading, user, navigate])
 
   const week = [
     { d: t('day.sun'), h: 25 }, { d: t('day.mon'), h: 55 }, { d: t('day.tue'), h: 35 },

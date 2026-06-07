@@ -1,9 +1,11 @@
+import { useNavigate } from 'react-router-dom'
 import { useUser } from '../context/UserContext.jsx'
 import { StreakChip } from './StreakChip.jsx'
 import { XPChip } from './XPChip.jsx'
 
 export function Header() {
-  const { user } = useUser()
+  const navigate = useNavigate()
+  const { user, signOut } = useUser()
   const initial = (user.name || '?').trim().charAt(0).toUpperCase()
   const pct = Math.min(100, Math.round((user.weeklyXP / user.weeklyGoal) * 100))
 
@@ -19,6 +21,7 @@ export function Header() {
         </div>
         <StreakChip value={user.streak} onDark />
         <XPChip value={user.xp} onDark />
+        <button className="btn" style={{ marginLeft: 'var(--space-3)' }} onClick={async () => { await signOut(); navigate('/') }}>יציאה</button>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)', fontSize: 'var(--font-size-caption)', opacity: 0.85 }}>
         <span>השבוע: {user.weeklyXP} XP</span>

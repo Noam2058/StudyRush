@@ -10,17 +10,27 @@ import { useLang } from '../context/LanguageContext.jsx'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
-  const { register } = useUser()
+  const { signUp } = useUser()
   const { t } = useLang()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
-    if (!name || !email || !password) return
-    register({ name, email })
-    navigate('/dashboard')
+    setError('')
+    if (!name || !email || !password) return setError(t('register.errors.required') || 'Please fill all fields')
+    setLoading(true)
+    try {
+      await signUp({ email, password, options: { data: { full_name: name } } })
+      navigate('/dashboard')
+    } catch (err) {
+      setError(err.message || t('register.errors.failed') || 'Registration failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -63,7 +73,8 @@ export default function RegisterPage() {
             <InputField label={t('common.fullName')} value={name} onChange={(e) => setName(e.target.value)} placeholder="" required />
             <InputField label={t('common.email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" required />
             <InputField label={t('common.password')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
-            <PrimaryButton type="submit" variant="cta" fullWidth>{t('register.submit')}</PrimaryButton>
+            {error && <div role="alert" className="auth__error" style={{ color: 'var(--color-danger)', marginBottom: 'var(--space-4)' }}>{error}</div>}
+            <PrimaryButton type="submit" variant="cta" fullWidth disabled={loading}>{loading ? t('common.loading') : t('register.submit')}</PrimaryButton>
             <p className="auth__foot">{t('register.haveAccount')} <Link to="/login">{t('nav.login')}</Link></p>
           </form>
         </div>
