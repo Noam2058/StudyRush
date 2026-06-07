@@ -17,15 +17,34 @@ function nameFromEmail(email) {
 export default function LoginPage() {
   const navigate = useNavigate()
   const { login } = useUser()
+  const { signIn, signInWithGoogle } = useUser()
   const { t } = useLang()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
-    if (!email || !password) return
-    login({ name: nameFromEmail(email), email })
-    navigate('/dashboard')
+    setError('')
+    if (!email || !password) return setError(t('login.errors.required'))
+    setLoading(true)
+    try {
+      await signIn({ email, password })
+      navigate('/dashboard')
+    } catch (err) {
+      setError(err.message || t('login.errors.failed'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogle = async () => {
+    try {
+      await signInWithGoogle()
+    } catch (err) {
+      setError(err.message || t('login.errors.failed'))
+    }
   }
 
   return (
@@ -67,12 +86,13 @@ export default function LoginPage() {
           <form onSubmit={submit}>
             <InputField label={t('common.email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" required />
             <InputField label={t('common.password')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
+            {error && <div role="alert" className="auth__error" style={{ color: 'var(--color-danger)', marginBottom: 'var(--space-4)' }}>{error}</div>}
             <div style={{ textAlign: 'start', marginBottom: 'var(--space-5)' }}>
               <a href="#" style={{ color: 'var(--color-action)', fontSize: 'var(--font-size-small)', fontWeight: 500 }}>{t('login.forgot')}</a>
             </div>
-            <PrimaryButton type="submit" variant="primary" fullWidth>{t('login.submit')}</PrimaryButton>
+            <PrimaryButton type="submit" variant="primary" fullWidth disabled={loading}>{loading ? t('common.loading') : t('login.submit')}</PrimaryButton>
             <div className="auth__divider"><hr />{t('common.or')}<hr /></div>
-            <PrimaryButton variant="secondary" fullWidth>{t('login.google')}</PrimaryButton>
+            <PrimaryButton type="button" variant="secondary" fullWidth onClick={handleGoogle}>{t('login.google')}</PrimaryButton>
             <p className="auth__foot">{t('login.noAccount')} <Link to="/register">{t('login.signupNow')}</Link></p>
           </form>
         </div>
