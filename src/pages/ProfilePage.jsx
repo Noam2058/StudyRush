@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, ChevronLeft, Settings, Trophy, LogOut, Star, Flame, BookOpen } from 'lucide-react'
 import { BottomNav } from '../components/BottomNav.jsx'
 import { useUser } from '../context/UserContext.jsx'
+import { supabase } from '../lib/supabase.js'
 
 function Stat({ Icon, color, value, label }) {
   return (
@@ -26,10 +27,18 @@ export default function ProfilePage() {
   const { user, logout } = useUser()
   const initial = (user.name || '?').charAt(0).toUpperCase()
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    logout()
+    navigate('/')
+  }
+
   return (
     <div className="app-container app-container--with-nav">
       <header className="page-header">
-        <Link to="/dashboard" className="page-header__back" aria-label="חזרה"><ArrowRight className="icon-flip" size={22} /></Link>
+        <Link to="/dashboard" className="page-header__back" aria-label="חזרה">
+          <ArrowRight className="icon-flip" size={22} />
+        </Link>
         <h1 className="page-header__title">הפרופיל שלי</h1>
       </header>
       <main style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
@@ -38,18 +47,22 @@ export default function ProfilePage() {
             {initial}
           </div>
           <h2 style={{ marginBottom: 'var(--space-1)' }}>{user.name || 'אורח'}</h2>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-small)', marginBottom: 'var(--space-3)' }}>{user.email || 'guest@studyrush.app'}</p>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-small)', marginBottom: 'var(--space-3)' }}>
+            {user.email || 'guest@studyrush.app'}
+          </p>
           <span className="chip">{user.plan}</span>
         </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-3)' }}>
           <Stat Icon={Star} color="var(--color-achievement)" value={user.xp.toLocaleString()} label="XP כולל" />
           <Stat Icon={Flame} color="var(--color-energy)" value={user.streak} label="סטריק" />
           <Stat Icon={BookOpen} color="var(--color-action)" value={4} label="קורסים" />
         </div>
+
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <MenuItem Icon={Settings} label="הגדרות" />
           <MenuItem Icon={Trophy} label="הישגים" />
-          <MenuItem Icon={LogOut} label="יציאה מהחשבון" danger onClick={() => { logout(); navigate('/') }} last />
+          <MenuItem Icon={LogOut} label="יציאה מהחשבון" danger onClick={handleLogout} last />
         </div>
       </main>
       <BottomNav />

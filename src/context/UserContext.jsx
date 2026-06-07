@@ -1,13 +1,13 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import supabase from '../lib/supabase'
+import { supabase } from '../lib/supabase.js'
 
 const DEFAULT_USER = {
   name: '',
   email: '',
   plan: 'Free plan',
-  streak: 12,
-  xp: 2450,
-  weeklyXP: 650,
+  streak: 0,
+  xp: 0,
+  weeklyXP: 0,
   weeklyGoal: 1000,
 }
 
@@ -17,12 +17,28 @@ export function UserProvider({ children }) {
   const [user, setUser] = useState(DEFAULT_USER)
   const [loading, setLoading] = useState(true)
 
-  // Map Supabase user object to our UI user shape
-  const mapUser = (u) => {
-    if (!u) return DEFAULT_USER
-    const email = u.email || ''
-    const name = u.user_metadata?.full_name || u.user_metadata?.name || (email ? email.split('@')[0] : '')
-    return { ...DEFAULT_USER, name, email }
+  // Fetch profile from DB and merge with auth user
+  async function fetchAndSetUser(authUser) {
+    if (!authUser) {
+      setUser(DEFAULT_USER)
+      return
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', authUser.id)
+      .single()
+
+    setUser({
+      name: profile?.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || '',
+      email: authUser.email || '',
+      plan: profile?.plan || 'Free plan',
+      streak: profile?.streak || 0,
+      xp: profile?.xp || 0,
+      weeklyXP: profile?.weekly_xp || 0,
+      weeklyGoal: profile?.weekly_goal || 1000,
+    })
   }
 
   useEffect(() => {
@@ -31,12 +47,11 @@ export function UserProvider({ children }) {
     async function init() {
       try {
         const { data } = await supabase.auth.getSession()
-        const session = data?.session
         if (isMounted) {
-          setUser(mapUser(session?.user))
+          await fetchAndSetUser(data?.session?.user || null)
         }
       } catch (err) {
-        // ignore
+        console.error('Session init error:', err)
       } finally {
         if (isMounted) setLoading(false)
       }
@@ -44,8 +59,10 @@ export function UserProvider({ children }) {
 
     init()
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (isMounted) setUser(mapUser(session?.user))
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (isMounted) {
+        await fetchAndSetUser(session?.user || null)
+      }
     })
 
     return () => {
@@ -54,32 +71,28 @@ export function UserProvider({ children }) {
     }
   }, [])
 
+  // Called after successful login/register from the pages
+  const login = (userData) => {
+    setUser((prev) => ({ ...prev, ...userData }))
+  }
+
+  // Called on logout
+  const logout = () => {
+    setUser(DEFAULT_USER)
+  }
+
+  // Kept for backwards compatibility
   const signIn = async ({ email, password }) => {
     const res = await supabase.auth.signInWithPassword({ email, password })
     if (res.error) throw res.error
-    setUser(mapUser(res.data?.user))
+    await fetchAndSetUser(res.data?.user)
     return res
   }
 
   const signUp = async ({ email, password, options } = {}) => {
     const res = await supabase.auth.signUp({ email, password, options })
     if (res.error) throw res.error
-    setUser(mapUser(res.data?.user))
-    // If a user object exists, try to create a profile row as a client-side fallback.
-    try {
-      const user = res.data?.user
-      if (user) {
-        await supabase.from('profiles').insert([{ id: user.id, email: user.email, full_name: user.user_metadata?.full_name }], { returning: 'minimal' })
-      }
-    } catch (e) {
-      // ignore insertion errors (server trigger approach is preferred)
-    }
-    return res
-  }
-
-  const signInWithGoogle = async () => {
-    const res = await supabase.auth.signInWithOAuth({ provider: 'google' })
-    if (res.error) throw res.error
+    await fetchAndSetUser(res.data?.user)
     return res
   }
 
@@ -89,7 +102,7 @@ export function UserProvider({ children }) {
   }
 
   return (
-    <UserContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, signOut }}>
+    <UserContext.Provider value={{ user, loading, login, logout, signIn, signUp, signOut }}>
       {children}
     </UserContext.Provider>
   )
