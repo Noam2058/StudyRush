@@ -28,11 +28,8 @@ export default function RegisterPage() {
     }
     setLoading(true)
 
-    // 1. Register user in Supabase Auth
-    const { data, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-    })
+    // 1. Register in Supabase Auth
+    const { data, error: authError } = await supabase.auth.signUp({ email, password })
 
     if (authError) {
       setError(authError.message || 'ההרשמה נכשלה, נסה שוב')
@@ -47,7 +44,7 @@ export default function RegisterPage() {
       return
     }
 
-    // 2. Create profile row in profiles table
+    // 2. Insert profile row
     const { error: profileError } = await supabase
       .from('profiles')
       .insert({
@@ -65,7 +62,7 @@ export default function RegisterPage() {
       console.error('Profile creation error:', profileError)
     }
 
-    // 3. Update local context
+    // 3. Update local context immediately
     login({
       name: name.trim(),
       email,
@@ -117,44 +114,14 @@ export default function RegisterPage() {
             <p>{t('register.sub')}</p>
           </div>
           <form onSubmit={submit}>
-            <InputField
-              label={t('common.fullName')}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="ישראל ישראלי"
-              required
-            />
-            <InputField
-              label={t('common.email')}
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@example.com"
-              required
-            />
-            <InputField
-              label={t('common.password')}
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
-
+            <InputField label={t('common.fullName')} value={name} onChange={(e) => setName(e.target.value)} placeholder="ישראל ישראלי" required />
+            <InputField label={t('common.email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" required />
+            <InputField label={t('common.password')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
             {error && (
-              <div role="alert" style={{
-                color: 'var(--color-error-accent)',
-                background: 'var(--color-error-bg)',
-                borderRadius: 'var(--radius-sm)',
-                padding: 'var(--space-3)',
-                fontSize: 'var(--font-size-small)',
-                marginBottom: 'var(--space-4)',
-                textAlign: 'right'
-              }}>
+              <div role="alert" style={{ color: 'var(--color-error-accent)', background: 'var(--color-error-bg)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-3)', fontSize: 'var(--font-size-small)', marginBottom: 'var(--space-4)', textAlign: 'right' }}>
                 {error}
               </div>
             )}
-
             <PrimaryButton type="submit" variant="cta" fullWidth disabled={loading}>
               {loading ? 'נרשם...' : t('register.submit')}
             </PrimaryButton>
