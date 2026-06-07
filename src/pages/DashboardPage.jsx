@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { Plus, ArrowLeft, Flame, Star, FileText } from 'lucide-react'
 import { Sidebar } from '../components/Sidebar.jsx'
 import { BottomNav } from '../components/BottomNav.jsx'

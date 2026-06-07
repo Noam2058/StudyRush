@@ -16,7 +16,6 @@ function nameFromEmail(email) {
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { login } = useUser()
   const { signIn, signInWithGoogle } = useUser()
   const { t } = useLang()
   const [email, setEmail] = useState('')
