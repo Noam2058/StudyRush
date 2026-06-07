@@ -65,6 +65,15 @@ export function UserProvider({ children }) {
     const res = await supabase.auth.signUp({ email, password, options })
     if (res.error) throw res.error
     setUser(mapUser(res.data?.user))
+    // If a user object exists, try to create a profile row as a client-side fallback.
+    try {
+      const user = res.data?.user
+      if (user) {
+        await supabase.from('profiles').insert([{ id: user.id, email: user.email, full_name: user.user_metadata?.full_name }], { returning: 'minimal' })
+      }
+    } catch (e) {
+      // ignore insertion errors (server trigger approach is preferred)
+    }
     return res
   }
 
