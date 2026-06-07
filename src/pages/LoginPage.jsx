@@ -32,7 +32,9 @@ export default function LoginPage() {
       await signIn({ email, password })
       navigate('/dashboard')
     } catch (err) {
-      setError(err.message || t('login.errors.failed'))
+      // Show a clearer error for invalid credentials
+      const msg = err?.message || t('login.errors.invalid') || 'Invalid email or password'
+      setError(msg)
     } finally {
       setLoading(false)
     }

@@ -24,8 +24,14 @@ export default function RegisterPage() {
     if (!name || !email || !password) return setError(t('register.errors.required') || 'Please fill all fields')
     setLoading(true)
     try {
-      await signUp({ email, password, options: { data: { full_name: name } } })
-      navigate('/dashboard')
+      const res = await signUp({ email, password, options: { data: { full_name: name } } })
+      const session = res?.data?.session
+      if (session) {
+        navigate('/dashboard')
+      } else {
+        // likely requires email confirmation
+        setError(t('register.checkEmail') || 'Please check your email to confirm your account')
+      }
     } catch (err) {
       setError(err.message || t('register.errors.failed') || 'Registration failed')
     } finally {
