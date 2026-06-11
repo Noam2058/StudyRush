@@ -8,12 +8,12 @@ export async function extractText(file) {
       // load mammoth dynamically (avoid bundling failure in Vite when module isn't present)
       let mammoth
       try {
-        const mod = await import('mammoth')
+        const mod = await import(/* @vite-ignore */ 'mammoth')
         mammoth = mod?.default || mod
       } catch (e) {
         // try browser build path as fallback
         try {
-          const mod = await import('mammoth/mammoth.browser')
+          const mod = await import(/* @vite-ignore */ 'mammoth/mammoth.browser')
           mammoth = mod?.default || mod
         } catch (err) {
           console.warn('mammoth not available in this environment; DOCX extraction skipped', err)
