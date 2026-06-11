@@ -27,11 +27,7 @@ export function NotebooksProvider({ children }) {
       try {
         const { data, error } = await supabase
           .from('notebooks')
-          .select(`
-            *,
-            notebook_sources (*),
-            quiz_questions (*)
-          `)
+          .select(`*, notebook_sources (*), quiz_questions (*)`)
           .order('created_at', { ascending: false })
 
         if (error) {
@@ -39,7 +35,6 @@ export function NotebooksProvider({ children }) {
           return
         }
 
-        // Map DB shape to app shape
         const mapped = (data || []).map((nb) => ({
           id: nb.id,
           title: nb.title,
@@ -81,7 +76,15 @@ export function NotebooksProvider({ children }) {
   }, [user?.email])
 
   const createNotebook = useCallback(async (input) => {
-    // 1. Generate content with AI (dummy engine)
+    // Get current session to get user_id
+    const { data: sessionData } = await supabase.auth.getSession()
+    const userId = sessionData?.session?.user?.id
+
+    if (!userId) {
+      throw new Error('User not authenticated')
+    }
+
+    // 1. Generate content with AI
     const sourceText = joinSourceText(input.sources)
     const content = generateContent({
       title: input.title,
@@ -91,10 +94,11 @@ export function NotebooksProvider({ children }) {
       sourceText,
     })
 
-    // 2. Insert notebook row
+    // 2. Insert notebook row — include user_id!
     const { data: nbData, error: nbError } = await supabase
       .from('notebooks')
       .insert({
+        user_id: userId,
         title: input.title,
         category: input.category,
         language: input.language,
@@ -145,7 +149,7 @@ export function NotebooksProvider({ children }) {
       if (qError) console.error('Error inserting questions:', qError)
     }
 
-    // 5. Build local notebook object
+    // 5. Build local notebook object and update state
     const nb = {
       id: notebookId,
       title: input.title,
