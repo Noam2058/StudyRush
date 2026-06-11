@@ -1,9 +1,10 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { generateContent } from '../lib/dummyAI.js'
 import { extractText, detectLangFromText } from '../lib/extractText.js'
+import { supabase } from '../lib/supabase.js'
+import { useUser } from './UserContext.jsx'
 
 const NotebooksContext = createContext(null)
-const STORAGE_KEY = 'studyrush.notebooks.v2'
 
 function joinSourceText(sources) {
   return sources.map((s) => s.text || '').filter(Boolean).join('\n\n')
@@ -11,20 +12,76 @@ function joinSourceText(sources) {
 
 export function NotebooksProvider({ children }) {
   const [notebooks, setNotebooks] = useState([])
+  const [loading, setLoading] = useState(false)
+  const { user } = useUser()
 
+  // Load notebooks from Supabase when user logs in
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) setNotebooks(JSON.parse(raw))
-    } catch {}
-  }, [])
+    if (!user?.email) {
+      setNotebooks([])
+      return
+    }
 
-  useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(notebooks)) } catch {}
-  }, [notebooks])
+    async function fetchNotebooks() {
+      setLoading(true)
+      try {
+        const { data, error } = await supabase
+          .from('notebooks')
+          .select(`
+            *,
+            notebook_sources (*),
+            quiz_questions (*)
+          `)
+          .order('created_at', { ascending: false })
 
-  const createNotebook = useCallback((input) => {
-    const id = `nb-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+        if (error) {
+          console.error('Error fetching notebooks:', error)
+          return
+        }
+
+        // Map DB shape to app shape
+        const mapped = (data || []).map((nb) => ({
+          id: nb.id,
+          title: nb.title,
+          category: nb.category,
+          language: nb.language,
+          questionCount: nb.question_count,
+          includeSummary: nb.include_summary,
+          includeQuiz: nb.include_quiz,
+          regenCount: nb.regen_count,
+          createdAt: new Date(nb.created_at).getTime(),
+          sources: (nb.notebook_sources || []).map((s) => ({
+            fileName: s.file_name,
+            kind: s.file_kind,
+            size: s.file_size,
+            addedAt: new Date(s.added_at).getTime(),
+            text: s.text_content || '',
+          })),
+          content: {
+            summary: nb.summary || '',
+            questions: (nb.quiz_questions || []).map((q) => ({
+              id: q.id,
+              topic: q.topic,
+              text: q.text,
+              options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options,
+              correctId: q.correct_id,
+              explanation: q.explanation,
+            })),
+            generatedAt: new Date(nb.created_at).getTime(),
+          },
+        }))
+
+        setNotebooks(mapped)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchNotebooks()
+  }, [user?.email])
+
+  const createNotebook = useCallback(async (input) => {
+    // 1. Generate content with AI (dummy engine)
     const sourceText = joinSourceText(input.sources)
     const content = generateContent({
       title: input.title,
@@ -33,8 +90,64 @@ export function NotebooksProvider({ children }) {
       nonce: 0,
       sourceText,
     })
+
+    // 2. Insert notebook row
+    const { data: nbData, error: nbError } = await supabase
+      .from('notebooks')
+      .insert({
+        title: input.title,
+        category: input.category,
+        language: input.language,
+        question_count: input.questionCount,
+        include_summary: input.includeSummary,
+        include_quiz: input.includeQuiz,
+        regen_count: 0,
+        summary: content.summary || '',
+      })
+      .select()
+      .single()
+
+    if (nbError) {
+      console.error('Error creating notebook:', nbError)
+      throw nbError
+    }
+
+    const notebookId = nbData.id
+
+    // 3. Insert sources
+    if (input.sources && input.sources.length > 0) {
+      const sourcesPayload = input.sources.map((s) => ({
+        notebook_id: notebookId,
+        file_name: s.fileName,
+        file_kind: s.kind,
+        file_size: s.size || 0,
+        text_content: s.text || '',
+      }))
+      const { error: srcError } = await supabase
+        .from('notebook_sources')
+        .insert(sourcesPayload)
+      if (srcError) console.error('Error inserting sources:', srcError)
+    }
+
+    // 4. Insert questions
+    if (content.questions && content.questions.length > 0) {
+      const questionsPayload = content.questions.map((q) => ({
+        notebook_id: notebookId,
+        topic: q.topic,
+        text: q.text,
+        options: q.options,
+        correct_id: q.correctId,
+        explanation: q.explanation,
+      }))
+      const { error: qError } = await supabase
+        .from('quiz_questions')
+        .insert(questionsPayload)
+      if (qError) console.error('Error inserting questions:', qError)
+    }
+
+    // 5. Build local notebook object
     const nb = {
-      id,
+      id: notebookId,
       title: input.title,
       category: input.category,
       language: input.language,
@@ -46,18 +159,29 @@ export function NotebooksProvider({ children }) {
       regenCount: 0,
       createdAt: Date.now(),
     }
+
     setNotebooks((prev) => [nb, ...prev])
     return nb
   }, [])
 
-  const removeNotebook = useCallback((id) => {
+  const removeNotebook = useCallback(async (id) => {
+    const { error } = await supabase
+      .from('notebooks')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error deleting notebook:', error)
+      return
+    }
+
     setNotebooks((prev) => prev.filter((nb) => nb.id !== id))
   }, [])
 
   const getNotebook = useCallback((id) => notebooks.find((nb) => nb.id === id), [notebooks])
 
   return (
-    <NotebooksContext.Provider value={{ notebooks, createNotebook, removeNotebook, getNotebook }}>
+    <NotebooksContext.Provider value={{ notebooks, loading, createNotebook, removeNotebook, getNotebook }}>
       {children}
     </NotebooksContext.Provider>
   )
