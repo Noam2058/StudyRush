@@ -94,19 +94,29 @@ export function NotebooksProvider({ children }) {
       sourceText,
     })
 
+    // small sanitizer to remove NUL chars which Postgres rejects
+    const sanitize = (v) => {
+      if (v == null) return v
+      try {
+        return String(v).replace(/\u0000/g, '')
+      } catch (e) {
+        return v
+      }
+    }
+
     // 2. Insert notebook row — include user_id!
     const { data: nbData, error: nbError } = await supabase
       .from('notebooks')
       .insert({
         user_id: userId,
-        title: input.title,
-        category: input.category,
-        language: input.language,
+        title: sanitize(input.title),
+        category: sanitize(input.category),
+        language: sanitize(input.language),
         question_count: input.questionCount,
         include_summary: input.includeSummary,
         include_quiz: input.includeQuiz,
         regen_count: 0,
-        summary: content.summary || '',
+        summary: sanitize(content.summary || ''),
       })
       .select()
       .single()
@@ -122,10 +132,10 @@ export function NotebooksProvider({ children }) {
     if (input.sources && input.sources.length > 0) {
       const sourcesPayload = input.sources.map((s) => ({
         notebook_id: notebookId,
-        file_name: s.fileName,
-        file_kind: s.kind,
+        file_name: sanitize(s.fileName),
+        file_kind: sanitize(s.kind),
         file_size: s.size || 0,
-        text_content: s.text || '',
+        text_content: sanitize(s.text || ''),
       }))
       const { error: srcError } = await supabase
         .from('notebook_sources')
@@ -137,11 +147,12 @@ export function NotebooksProvider({ children }) {
     if (content.questions && content.questions.length > 0) {
       const questionsPayload = content.questions.map((q) => ({
         notebook_id: notebookId,
-        topic: q.topic,
-        text: q.text,
-        options: q.options,
+        topic: sanitize(q.topic),
+        text: sanitize(q.text),
+        // store options as JSON string (DB expects text/json string)
+        options: typeof q.options === 'string' ? sanitize(q.options) : sanitize(JSON.stringify(q.options)),
         correct_id: q.correctId,
-        explanation: q.explanation,
+        explanation: sanitize(q.explanation),
       }))
       const { error: qError } = await supabase
         .from('quiz_questions')
