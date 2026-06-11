@@ -137,9 +137,37 @@ export function NotebooksProvider({ children }) {
         file_size: s.size || 0,
         text_content: sanitize(s.text || ''),
       }))
-      const { error: srcError } = await supabase
-        .from('notebook_sources')
-        .insert(sourcesPayload)
+      // try normal insert first
+      let { error: srcError } = await supabase.from('notebook_sources').insert(sourcesPayload)
+      if (srcError) {
+        console.error('Error inserting sources (first attempt):', srcError)
+        // If the DB expects a bytea column and rejects text, retry encoding text_content as bytea hex
+        const isByteaError = (srcError.code === '22P02') || (srcError.message && /bytea/i.test(srcError.message))
+        if (isByteaError) {
+          try {
+            const encodeToByteaHex = (str) => {
+              if (str == null) return null
+              const encoder = new TextEncoder()
+              const bytes = encoder.encode(String(str))
+              let hex = ''
+              for (let b of bytes) hex += b.toString(16).padStart(2, '0')
+              return `\\x${hex}`
+            }
+            const sourcesPayloadHex = sourcesPayload.map((s) => ({
+              ...s,
+              text_content: encodeToByteaHex(s.text_content),
+            }))
+            const retry = await supabase.from('notebook_sources').insert(sourcesPayloadHex)
+            if (retry.error) {
+              console.error('Retry inserting sources (as bytea hex) failed:', retry.error)
+            } else {
+              srcError = null
+            }
+          } catch (e) {
+            console.error('Error while retrying insert as bytea hex:', e)
+          }
+        }
+      }
       if (srcError) console.error('Error inserting sources:', srcError)
     }
 
