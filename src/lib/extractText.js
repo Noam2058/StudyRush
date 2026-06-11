@@ -1,5 +1,3 @@
-import mammoth from 'mammoth'
-
 export async function extractText(file) {
   const name = file.name.toLowerCase()
 
@@ -7,6 +5,22 @@ export async function extractText(file) {
   if (name.endsWith('.docx') || name.endsWith('.doc')) {
     try {
       const arrayBuffer = await file.arrayBuffer()
+      // load mammoth dynamically (avoid bundling failure in Vite when module isn't present)
+      let mammoth
+      try {
+        const mod = await import('mammoth')
+        mammoth = mod?.default || mod
+      } catch (e) {
+        // try browser build path as fallback
+        try {
+          const mod = await import('mammoth/mammoth.browser')
+          mammoth = mod?.default || mod
+        } catch (err) {
+          console.warn('mammoth not available in this environment; DOCX extraction skipped', err)
+          return ''
+        }
+      }
+
       const result = await mammoth.extractRawText({ arrayBuffer })
       return result.value || ''
     } catch (e) {
