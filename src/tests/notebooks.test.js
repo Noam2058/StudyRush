@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
 // Mock Supabase
-vi.mock('../../lib/supabase.js', () => ({
+vi.mock('../lib/supabase.js', () => ({
   supabase: {
     auth: {
       getSession: vi.fn().mockResolvedValue({
@@ -31,7 +31,7 @@ vi.mock('../../lib/supabase.js', () => ({
 }))
 
 // Mock dummyAI
-vi.mock('../../lib/dummyAI.js', () => ({
+vi.mock('../lib/dummyAI.js', () => ({
   generateContent: vi.fn().mockReturnValue({
     summary: 'Test summary',
     questions: [
@@ -55,7 +55,7 @@ vi.mock('../../lib/dummyAI.js', () => ({
 
 describe('Notebook CRUD operations', () => {
   it('should create a notebook with correct data', async () => {
-    const { generateContent } = await import('../../lib/dummyAI.js')
+    const { generateContent } = await import('../lib/dummyAI.js')
     const content = generateContent({ title: 'Test', language: 'he', questionCount: 1, sourceText: 'test' })
 
     expect(content).toBeDefined()
@@ -65,7 +65,7 @@ describe('Notebook CRUD operations', () => {
   })
 
   it('should have required fields in a question', async () => {
-    const { generateContent } = await import('../../lib/dummyAI.js')
+    const { generateContent } = await import('../lib/dummyAI.js')
     const content = generateContent({ title: 'Test', language: 'he', questionCount: 1, sourceText: 'test' })
     const q = content.questions[0]
 
@@ -79,7 +79,7 @@ describe('Notebook CRUD operations', () => {
   })
 
   it('should return correct answer among options', async () => {
-    const { generateContent } = await import('../../lib/dummyAI.js')
+    const { generateContent } = await import('../lib/dummyAI.js')
     const content = generateContent({ title: 'Test', language: 'he', questionCount: 1, sourceText: 'test' })
     const q = content.questions[0]
     const correctOption = q.options.find((o) => o.id === q.correctId)
@@ -88,7 +88,7 @@ describe('Notebook CRUD operations', () => {
   })
 
   it('should call supabase insert when creating notebook', async () => {
-    const { supabase } = await import('../../lib/supabase.js')
+    const { supabase } = await import('../lib/supabase.js')
 
     const result = await supabase
       .from('notebooks')
@@ -102,7 +102,7 @@ describe('Notebook CRUD operations', () => {
   })
 
   it('should call supabase delete when removing notebook', async () => {
-    const { supabase } = await import('../../lib/supabase.js')
+    const { supabase } = await import('../lib/supabase.js')
 
     const result = await supabase
       .from('notebooks')
@@ -113,7 +113,7 @@ describe('Notebook CRUD operations', () => {
   })
 
   it('should fetch empty notebooks list for new user', async () => {
-    const { supabase } = await import('../../lib/supabase.js')
+    const { supabase } = await import('../lib/supabase.js')
 
     const result = await supabase
       .from('notebooks')
@@ -125,7 +125,7 @@ describe('Notebook CRUD operations', () => {
   })
 
   it('should detect Hebrew language correctly', async () => {
-    const { detectLangFromText } = await import('../../lib/extractText.js')
+    const { detectLangFromText } = await import('../lib/extractText.js')
     const heText = 'זהו טקסט בעברית עם מילים רבות'
     const enText = 'This is an English text with many words'
 
