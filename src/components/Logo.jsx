@@ -1,5 +1,5 @@
 export function Logo({ height = 48, className = '' }) {
-  // inline SVG fallback in case /logo.png is missing (prevents white box)
+  // Prefer an SVG file in public/, fall back to PNG then inline SVG data URI
   const svg = `
     <svg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'>
       <rect width='128' height='128' rx='20' fill='%231f6a8a' />
@@ -7,17 +7,25 @@ export function Logo({ height = 48, className = '' }) {
     </svg>`
   const fallback = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
 
+  const srcs = ['/logo.svg', '/logo.png']
+
   return (
     <img
-      src="/logo.png"
+      src={srcs[0]}
       alt="StudyRush"
       height={height}
       style={{ objectFit: 'contain', display: 'block' }}
       className={className}
       onError={(e) => {
-        // replace with inline SVG data URI when the image fails to load
-        e.currentTarget.onerror = null
-        e.currentTarget.src = fallback
+        const img = e.currentTarget
+        img.onerror = null
+        // try next source
+        const current = srcs.indexOf(img.src.replace(window.location.origin, ''))
+        if (current >= 0 && current < srcs.length - 1) {
+          img.src = srcs[current + 1]
+        } else {
+          img.src = fallback
+        }
       }}
     />
   )
