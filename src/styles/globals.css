@@ -968,6 +968,6 @@ html[data-a11y-cursor="large"], html[data-a11y-cursor="large"] * {
   align-items: center;
 }
 .sidebar__brand img {
-  filter: brightness(0) invert(1);
   max-width: 160px;
+  border-radius: 8px;
 }
