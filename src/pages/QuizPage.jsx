@@ -110,6 +110,7 @@ export default function QuizPage() {
       </div>
 
       <main style={{ flex: 1, padding: 'var(--space-6) var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)', maxWidth: 720, width: '100%', margin: '0 auto' }}>
+        <div key={index} className="question-enter" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
         <span className="chip" style={{ alignSelf: 'flex-start' }}>{isHe ? 'נושא' : 'Topic'}: {q.topic}</span>
         <h2 style={{ fontSize: 26, lineHeight: 1.3 }}>{q.text}</h2>
 
@@ -158,6 +159,7 @@ export default function QuizPage() {
           {!submitted
             ? <PrimaryButton variant="primary" fullWidth disabled={!picked} onClick={() => setSubmitted(true)}>{isHe ? 'אמת תשובה' : 'Submit'}</PrimaryButton>
             : <PrimaryButton variant="cta" fullWidth onClick={next}>{index + 1 >= total ? (isHe ? 'סיים' : 'Finish') : (isHe ? 'הבא' : 'Next')} →</PrimaryButton>}
+        </div>
         </div>
       </main>
     </div>

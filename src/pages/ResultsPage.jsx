@@ -1,7 +1,46 @@
+import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Trophy, Star, Flame } from 'lucide-react'
+import { Star, Flame } from 'lucide-react'
 import { PrimaryButton } from '../components/PrimaryButton.jsx'
 import { useLang } from '../context/LanguageContext.jsx'
+
+const RADIUS = 46
+const CIRC = 2 * Math.PI * RADIUS
+
+function ScoreRing({ percentage }) {
+  const [progress, setProgress] = useState(0)
+
+  useEffect(() => {
+    const t = setTimeout(() => setProgress(percentage), 80)
+    return () => clearTimeout(t)
+  }, [percentage])
+
+  const offset = CIRC - (progress / 100) * CIRC
+  const color = percentage >= 80 ? 'var(--color-correct)' : percentage >= 50 ? 'var(--color-action)' : 'var(--color-energy)'
+
+  return (
+    <svg width="140" height="140" viewBox="0 0 108 108" style={{ display: 'block' }}>
+      <circle cx="54" cy="54" r={RADIUS} fill="none" stroke="var(--color-border)" strokeWidth="9" />
+      <circle
+        cx="54" cy="54" r={RADIUS}
+        fill="none"
+        stroke={color}
+        strokeWidth="9"
+        strokeLinecap="round"
+        strokeDasharray={CIRC}
+        strokeDashoffset={offset}
+        transform="rotate(-90 54 54)"
+        style={{ transition: 'stroke-dashoffset 1s cubic-bezier(.4,0,.2,1), stroke 0.4s' }}
+      />
+      <text x="54" y="50" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: 22, fontWeight: 800, fill: 'var(--color-text-primary)', fontFamily: 'inherit' }}>
+        {percentage}%
+      </text>
+      <text x="54" y="68" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: 10, fill: 'var(--color-text-secondary)', fontFamily: 'inherit' }}>
+        ציון
+      </text>
+    </svg>
+  )
+}
 
 export default function ResultsPage() {
   const navigate = useNavigate()
@@ -20,30 +59,22 @@ export default function ResultsPage() {
   return (
     <div className="app-container">
       <main style={{ padding: 'var(--space-8) var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+
         <div style={{ textAlign: 'center' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 96, height: 96, background: 'rgba(158,143,55,0.18)', color: 'var(--color-achievement)', borderRadius: '50%', marginBottom: 'var(--space-4)' }}>
-            <Trophy size={44} />
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--space-3)' }}>
+            <ScoreRing percentage={percentage} />
           </div>
           <h1 style={{ fontSize: 'var(--font-size-h1)', marginBottom: 'var(--space-2)' }}>
-            {isHe ? 'סשן הסתיים!' : 'Session complete!'}
+            {score} / {total}
           </h1>
           <p style={{ color: 'var(--color-text-secondary)' }}>
-            {isHe ? 'עבודה מצוינת, המשך להתאמן' : 'Great work, keep practicing'}
-          </p>
-        </div>
-
-        <div className="card card--surface" style={{ textAlign: 'center' }}>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-small)', marginBottom: 'var(--space-2)' }}>
-            {isHe ? 'ציון' : 'Score'}
-          </p>
-          <div style={{ fontSize: 56, fontWeight: 800, marginBottom: 'var(--space-3)' }}>
-            {score} / {total}
-          </div>
-          <div className="progress">
-            <div className="progress__fill" style={{ width: `${percentage}%` }} />
-          </div>
-          <p style={{ marginTop: 'var(--space-2)', fontSize: 'var(--font-size-small)', color: 'var(--color-text-secondary)' }}>
-            {percentage}%
+            {percentage === 100
+              ? (isHe ? 'מושלם! כל הכבוד!' : 'Perfect score!')
+              : percentage >= 80
+              ? (isHe ? 'עבודה מצוינת!' : 'Great work!')
+              : percentage >= 50
+              ? (isHe ? 'לא רע, המשך להתאמן' : 'Not bad, keep practicing')
+              : (isHe ? 'תמשיך להתאמן, תצליח!' : 'Keep going, you got this!')}
           </p>
         </div>
 
@@ -60,13 +91,11 @@ export default function ResultsPage() {
           <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
             <Flame size={26} color="var(--color-energy)" fill="var(--color-energy)" />
             <div>
-              <div style={{ fontWeight: 700, fontSize: 'var(--font-size-h3)' }}>{score === total ? '🔥' : score > total / 2 ? '👍' : '💪'}</div>
+              <div style={{ fontWeight: 700, fontSize: 'var(--font-size-h3)' }}>
+                {score}/{total}
+              </div>
               <div style={{ fontSize: 'var(--font-size-caption)', color: 'var(--color-text-secondary)' }}>
-                {score === total
-                  ? (isHe ? 'מושלם!' : 'Perfect!')
-                  : score > total / 2
-                  ? (isHe ? 'כל הכבוד!' : 'Well done!')
-                  : (isHe ? 'תמשיך להתאמן' : 'Keep going!')}
+                {isHe ? 'תשובות נכונות' : 'Correct answers'}
               </div>
             </div>
           </div>

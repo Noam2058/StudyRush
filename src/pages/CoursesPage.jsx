@@ -6,11 +6,29 @@ import { BottomNav } from '../components/BottomNav.jsx'
 import { useLang } from '../context/LanguageContext.jsx'
 import { useNotebooks } from '../context/NotebooksContext.jsx'
 
+const COVERS = ['var(--cover-peach)', 'var(--cover-blue)', 'var(--cover-cream)', 'var(--cover-mint)']
+
+function coverFromId(id) {
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
+  return COVERS[h % COVERS.length]
+}
+
+function SkeletonCard() {
+  return (
+    <div className="course" style={{ gap: 'var(--space-3)' }}>
+      <div className="skeleton" style={{ height: 90, borderRadius: 'var(--radius-md)' }} />
+      <div className="skeleton" style={{ height: 16, width: '80%' }} />
+      <div className="skeleton" style={{ height: 12, width: '50%' }} />
+    </div>
+  )
+}
+
 export default function CoursesPage() {
   const { t, lang } = useLang()
   const isHe = lang === 'he'
   const navigate = useNavigate()
-  const { notebooks, removeNotebook } = useNotebooks()
+  const { notebooks, loading, removeNotebook } = useNotebooks()
   const [query, setQuery] = useState('')
 
   const filtered = query.trim()
@@ -33,7 +51,16 @@ export default function CoursesPage() {
           </div>
         </header>
         <main className="dash__content">
-          {notebooks.length === 0 ? (
+          {loading ? (
+            <section>
+              <div className="dash__section-head" style={{ marginBottom: 'var(--space-4)' }}>
+                <div className="skeleton" style={{ height: 14, width: 80 }} />
+              </div>
+              <div className="course-grid">
+                {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
+              </div>
+            </section>
+          ) : notebooks.length === 0 ? (
             <section style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-8)', textAlign: 'center' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 72, height: 72, borderRadius: 'var(--radius-lg)', background: 'var(--cover-blue)', color: 'var(--color-action)', marginBottom: 'var(--space-4)' }}>
                 <BookOpen size={32} />
@@ -65,20 +92,23 @@ export default function CoursesPage() {
                 </p>
               ) : (
                 <div className="course-grid">
-                  {filtered.map((nb) => (
-                    <div key={nb.id} className="course" style={{ position: 'relative', textAlign: 'start' }}>
-                      <button onClick={() => navigate(`/notebooks/${nb.id}`)} style={{ all: 'unset', cursor: 'pointer', display: 'block', width: '100%' }}>
-                        <div className="course__cover" style={{ background: `repeating-linear-gradient(135deg, var(--cover-blue) 0 12px, color-mix(in oklab, var(--cover-blue) 80%, white) 12px 14px)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <FileText size={28} color="var(--color-primary)" />
-                        </div>
-                        <div className="course__title">{nb.title}</div>
-                        <div className="course__meta" style={{ marginTop: 4 }}>{nb.category} · {nb.sources.length} {isHe ? 'קבצים' : 'files'} · {nb.questionCount}q</div>
-                      </button>
-                      <button onClick={() => { if (confirm(isHe ? 'למחוק את המחברת?' : 'Delete this notebook?')) removeNotebook(nb.id) }} aria-label="delete" style={{ position: 'absolute', top: 8, insetInlineEnd: 8, background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-pill)', width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-error-accent)', cursor: 'pointer' }}>
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
+                  {filtered.map((nb) => {
+                    const cover = coverFromId(nb.id)
+                    return (
+                      <div key={nb.id} className="course" style={{ position: 'relative', textAlign: 'start' }}>
+                        <button onClick={() => navigate(`/notebooks/${nb.id}`)} style={{ all: 'unset', cursor: 'pointer', display: 'block', width: '100%' }}>
+                          <div className="course__cover" style={{ background: `repeating-linear-gradient(135deg, ${cover} 0 12px, color-mix(in oklab, ${cover} 80%, white) 12px 14px)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <FileText size={28} color="var(--color-primary)" />
+                          </div>
+                          <div className="course__title">{nb.title}</div>
+                          <div className="course__meta" style={{ marginTop: 4 }}>{nb.category} · {nb.sources.length} {isHe ? 'קבצים' : 'files'} · {nb.questionCount}q</div>
+                        </button>
+                        <button onClick={() => { if (confirm(isHe ? 'למחוק את המחברת?' : 'Delete this notebook?')) removeNotebook(nb.id) }} aria-label="delete" style={{ position: 'absolute', top: 8, insetInlineEnd: 8, background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-pill)', width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-error-accent)', cursor: 'pointer' }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )
+                  })}
                   <button className="course course--add" onClick={() => navigate('/upload')}>
                     <div className="course__add-inner"><Plus size={28} /><span>{t('dash.newCourse')}</span></div>
                   </button>

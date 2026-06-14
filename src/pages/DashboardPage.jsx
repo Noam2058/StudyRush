@@ -7,7 +7,14 @@ import { useUser } from '../context/UserContext.jsx'
 import { useLang } from '../context/LanguageContext.jsx'
 import { useNotebooks } from '../context/NotebooksContext.jsx'
 
-const COVER_ROTATE = ['var(--cover-peach)', 'var(--cover-blue)', 'var(--cover-cream)']
+const COVERS = ['var(--cover-peach)', 'var(--cover-blue)', 'var(--cover-cream)', 'var(--cover-mint)']
+
+
+function coverFromId(id) {
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
+  return COVERS[h % COVERS.length]
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -83,8 +90,8 @@ export default function DashboardPage() {
               <Link to="/courses" className="dash__view-all">{t('common.viewAll')}</Link>
             </div>
             <div className="course-grid">
-              {notebooks.slice(0, 3).map((nb, i) => {
-                const cover = COVER_ROTATE[i % COVER_ROTATE.length]
+              {notebooks.slice(0, 3).map((nb) => {
+                const cover = coverFromId(nb.id)
                 return (
                   <button key={nb.id} className="course" onClick={() => navigate(`/notebooks/${nb.id}`)}>
                     <div className="course__cover" style={{ background: `repeating-linear-gradient(135deg, ${cover} 0 12px, color-mix(in oklab, ${cover} 80%, white) 12px 14px)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
