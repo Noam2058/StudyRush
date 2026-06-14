@@ -20,7 +20,7 @@ export const translations = {
     "lang.toggleAria": "החלף לאנגלית",
 
     // Landing
-    "landing.eyebrow": "אפליקציית למידה בסגנון דואולינגו",
+    "landing.eyebrow": "אפליקציית למידה",
     "landing.title.1": "הפוך את חומרי",
     "landing.title.2": "הלימוד שלך",
     "landing.title.3": "למשחק",
