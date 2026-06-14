@@ -1,5 +1,5 @@
-import { NavLink } from 'react-router-dom'
-import { LayoutGrid, BookOpen, Upload, Medal, User } from 'lucide-react'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { LayoutGrid, BookOpen, Upload, Medal, User, LogOut } from 'lucide-react'
 import { useUser } from '../context/UserContext.jsx'
 import { useLang } from '../context/LanguageContext.jsx'
 import { Logo } from './Logo.jsx'
@@ -16,6 +16,7 @@ export function Sidebar() {
     { to: '/leaderboard', label: t('side.leaderboard'), Icon: Medal },
     { to: '/profile', label: t('side.profile'), Icon: User },
   ]
+  const navigate = useNavigate()
 
   return (
     <aside className="sidebar">
@@ -41,6 +42,27 @@ export function Sidebar() {
           <div className="sidebar__name">{user.name || t('side.guest')}</div>
           <div className="sidebar__plan">{user.plan}</div>
         </div>
+      </div>
+      <div style={{ padding: 'var(--space-3)', display: 'flex', justifyContent: 'center' }}>
+        <button
+          onClick={async () => { await signOut(); navigate('/') }}
+          className="sidebar__logout"
+          aria-label="התנתק"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--color-text-on-primary, #fff)',
+            cursor: 'pointer',
+            padding: '0.5rem 0.75rem',
+            borderRadius: '8px',
+          }}
+        >
+          <LogOut size={16} />
+          <span>התנתק</span>
+        </button>
       </div>
     </aside>
   )
