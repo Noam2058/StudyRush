@@ -29,6 +29,7 @@ export default function UploadPage() {
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState('')
   const [error, setError] = useState('')
+  const [textWarning, setTextWarning] = useState('')
 
   const ready = !busy && files.length > 0 && title && category && (includeSummary || includeQuiz)
 
@@ -47,6 +48,13 @@ export default function UploadPage() {
         sources.push({ fileName: f.name, kind: fileKindFromName(f.name), size: f.size, addedAt: Date.now(), text })
       }
       const resolvedLang = language === 'auto' ? detectLangFromText(combined || title) : language
+      if (combined.trim().length < 200) {
+        setTextWarning(isHe
+          ? 'לא נמצא מספיק טקסט בקבצים — ייתכן שמדובר ב-PDF סרוק (תמונות בלבד). השאלות עלולות להיות באיכות נמוכה.'
+          : 'Very little text was extracted — the files may be image-only scans. Questions quality may be limited.')
+      } else {
+        setTextWarning('')
+      }
       const nb = await createNotebook({ title, category, language: resolvedLang, questionCount: count, includeSummary, includeQuiz, sources })
       navigate(`/notebooks/${nb.id}`)
     } catch (err) {
@@ -153,6 +161,12 @@ export default function UploadPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3) var(--space-4)', background: 'var(--color-success-bg)', borderRadius: 'var(--radius-md)', color: 'var(--color-primary)', fontSize: 'var(--font-size-small)' }}>
             <Loader2 size={18} className="spin" />
             <span>{progress || (isHe ? 'מייצר תוכן…' : 'Generating content…')}</span>
+          </div>
+        )}
+
+        {textWarning && (
+          <div style={{ color: 'var(--color-achievement)', background: 'rgba(158,143,55,0.12)', border: '1px solid var(--color-achievement)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-3)', fontSize: 'var(--font-size-small)' }}>
+            ⚠️ {textWarning}
           </div>
         )}
 

@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, ChevronLeft, Settings, Trophy, LogOut, Star, Flame, BookOpen } from 'lucide-react'
 import { BottomNav } from '../components/BottomNav.jsx'
 import { useUser } from '../context/UserContext.jsx'
+import { useNotebooks } from '../context/NotebooksContext.jsx'
 import { supabase } from '../lib/supabase.js'
 
 function Stat({ Icon, color, value, label }) {
@@ -25,6 +26,7 @@ function MenuItem({ Icon, label, danger, onClick, last }) {
 export default function ProfilePage() {
   const navigate = useNavigate()
   const { user, logout } = useUser()
+  const { notebooks } = useNotebooks()
   const initial = (user.name || '?').charAt(0).toUpperCase()
 
   const handleLogout = async () => {
@@ -56,7 +58,7 @@ export default function ProfilePage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-3)' }}>
           <Stat Icon={Star} color="var(--color-achievement)" value={user.xp.toLocaleString()} label="XP כולל" />
           <Stat Icon={Flame} color="var(--color-energy)" value={user.streak} label="סטריק" />
-          <Stat Icon={BookOpen} color="var(--color-action)" value={4} label="קורסים" />
+          <Stat Icon={BookOpen} color="var(--color-action)" value={notebooks.length} label="קורסים" />
         </div>
 
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>

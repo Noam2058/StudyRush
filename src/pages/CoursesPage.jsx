@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, FileText, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Plus, BookOpen, FileText, Trash2, Search } from 'lucide-react'
 import { Sidebar } from '../components/Sidebar.jsx'
 import { BottomNav } from '../components/BottomNav.jsx'
 import { useLang } from '../context/LanguageContext.jsx'
@@ -10,6 +11,14 @@ export default function CoursesPage() {
   const isHe = lang === 'he'
   const navigate = useNavigate()
   const { notebooks, removeNotebook } = useNotebooks()
+  const [query, setQuery] = useState('')
+
+  const filtered = query.trim()
+    ? notebooks.filter((nb) =>
+        nb.title.toLowerCase().includes(query.toLowerCase()) ||
+        nb.category.toLowerCase().includes(query.toLowerCase())
+      )
+    : notebooks
 
   return (
     <div className="dash">
@@ -35,28 +44,46 @@ export default function CoursesPage() {
             </section>
           ) : (
             <section>
-              <div className="dash__section-head">
+              <div className="dash__section-head" style={{ marginBottom: 'var(--space-4)' }}>
                 <span className="section-label">{notebooks.length} {isHe ? 'מחברות' : 'notebooks'}</span>
               </div>
-              <div className="course-grid">
-                {notebooks.map((nb) => (
-                  <div key={nb.id} className="course" style={{ position: 'relative', textAlign: 'start' }}>
-                    <button onClick={() => navigate(`/notebooks/${nb.id}`)} style={{ all: 'unset', cursor: 'pointer', display: 'block', width: '100%' }}>
-                      <div className="course__cover" style={{ background: `repeating-linear-gradient(135deg, var(--cover-blue) 0 12px, color-mix(in oklab, var(--cover-blue) 80%, white) 12px 14px)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <FileText size={28} color="var(--color-primary)" />
-                      </div>
-                      <div className="course__title">{nb.title}</div>
-                      <div className="course__meta" style={{ marginTop: 4 }}>{nb.category} · {nb.sources.length} {isHe ? 'קבצים' : 'files'} · {nb.questionCount}q</div>
-                    </button>
-                    <button onClick={() => { if (confirm(isHe ? 'למחוק את המחברת?' : 'Delete this notebook?')) removeNotebook(nb.id) }} aria-label="delete" style={{ position: 'absolute', top: 8, insetInlineEnd: 8, background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-pill)', width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-error-accent)', cursor: 'pointer' }}>
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
-                <button className="course course--add" onClick={() => navigate('/upload')}>
-                  <div className="course__add-inner"><Plus size={28} /><span>{t('dash.newCourse')}</span></div>
-                </button>
+
+              <div style={{ position: 'relative', marginBottom: 'var(--space-4)' }}>
+                <Search size={16} style={{ position: 'absolute', insetInlineStart: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', pointerEvents: 'none' }} />
+                <input
+                  className="input"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={isHe ? 'חפש לפי שם או קטגוריה...' : 'Search by name or category...'}
+                  style={{ paddingInlineStart: 36 }}
+                />
               </div>
+
+              {filtered.length === 0 ? (
+                <p style={{ color: 'var(--color-text-secondary)', textAlign: 'center', padding: 'var(--space-8) 0' }}>
+                  {isHe ? 'לא נמצאו תוצאות' : 'No results found'}
+                </p>
+              ) : (
+                <div className="course-grid">
+                  {filtered.map((nb) => (
+                    <div key={nb.id} className="course" style={{ position: 'relative', textAlign: 'start' }}>
+                      <button onClick={() => navigate(`/notebooks/${nb.id}`)} style={{ all: 'unset', cursor: 'pointer', display: 'block', width: '100%' }}>
+                        <div className="course__cover" style={{ background: `repeating-linear-gradient(135deg, var(--cover-blue) 0 12px, color-mix(in oklab, var(--cover-blue) 80%, white) 12px 14px)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <FileText size={28} color="var(--color-primary)" />
+                        </div>
+                        <div className="course__title">{nb.title}</div>
+                        <div className="course__meta" style={{ marginTop: 4 }}>{nb.category} · {nb.sources.length} {isHe ? 'קבצים' : 'files'} · {nb.questionCount}q</div>
+                      </button>
+                      <button onClick={() => { if (confirm(isHe ? 'למחוק את המחברת?' : 'Delete this notebook?')) removeNotebook(nb.id) }} aria-label="delete" style={{ position: 'absolute', top: 8, insetInlineEnd: 8, background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-pill)', width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-error-accent)', cursor: 'pointer' }}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  <button className="course course--add" onClick={() => navigate('/upload')}>
+                    <div className="course__add-inner"><Plus size={28} /><span>{t('dash.newCourse')}</span></div>
+                  </button>
+                </div>
+              )}
             </section>
           )}
         </main>

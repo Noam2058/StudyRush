@@ -12,10 +12,10 @@ const COVER_ROTATE = ['var(--cover-peach)', 'var(--cover-blue)', 'var(--cover-cr
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { user, loading } = useUser()
-  const { t } = useLang()
+  const { t, lang } = useLang()
+  const isHe = lang === 'he'
   const { notebooks } = useNotebooks()
 
-  // Protect route: redirect to login if no authenticated user
   useEffect(() => {
     if (!loading && (!user || !user.email)) {
       navigate('/login')
@@ -31,6 +31,8 @@ export default function DashboardPage() {
   const greeting = user.name
     ? t('dash.greetingNamed', { name: user.name, streak: user.streak })
     : t('dash.greeting', { streak: user.streak })
+
+  const latestNotebook = notebooks[0] ?? null
 
   return (
     <div className="dash">
@@ -48,19 +50,32 @@ export default function DashboardPage() {
         </header>
 
         <main className="dash__content">
-          <section className="reco" onClick={() => navigate('/quiz/biology-3')}>
-            <div className="reco__text">
-              <p className="section-label">{t('dash.todayLabel')}</p>
-              <h2 className="reco__title">{t('dash.continueBio')}</h2>
-              <p className="reco__meta">{t('dash.mastery', { pct: 42 })}</p>
-              <div className="progress" style={{ marginTop: 'var(--space-3)', maxWidth: 480 }}>
-                <div className="progress__fill" style={{ width: '42%' }} />
+          {latestNotebook ? (
+            <section className="reco" onClick={() => navigate(`/quiz/${latestNotebook.id}`)}>
+              <div className="reco__text">
+                <p className="section-label">{t('dash.todayLabel')}</p>
+                <h2 className="reco__title">{isHe ? `המשך: ${latestNotebook.title}` : `Continue: ${latestNotebook.title}`}</h2>
+                <p className="reco__meta">{latestNotebook.questionCount} {isHe ? 'שאלות' : 'questions'} · {latestNotebook.category}</p>
+                <div className="progress" style={{ marginTop: 'var(--space-3)', maxWidth: 480 }}>
+                  <div className="progress__fill" style={{ width: '0%' }} />
+                </div>
               </div>
-            </div>
-            <button className="btn btn--cta reco__cta" onClick={(e) => { e.stopPropagation(); navigate('/quiz/biology-3') }}>
-              {t('dash.startPractice')} <ArrowLeft size={16} className="icon-flip" />
-            </button>
-          </section>
+              <button className="btn btn--cta reco__cta" onClick={(e) => { e.stopPropagation(); navigate(`/quiz/${latestNotebook.id}`) }}>
+                {t('dash.startPractice')} <ArrowLeft size={16} className="icon-flip" />
+              </button>
+            </section>
+          ) : (
+            <section className="reco" onClick={() => navigate('/upload')}>
+              <div className="reco__text">
+                <p className="section-label">{t('dash.todayLabel')}</p>
+                <h2 className="reco__title">{isHe ? 'העלה את החומר הראשון שלך' : 'Upload your first material'}</h2>
+                <p className="reco__meta">{isHe ? 'ה-AI ייצר עבורך שאלות תוך שניות' : 'AI will build your quiz in seconds'}</p>
+              </div>
+              <button className="btn btn--cta reco__cta" onClick={(e) => { e.stopPropagation(); navigate('/upload') }}>
+                <Plus size={16} /> {t('dash.uploadNew')}
+              </button>
+            </section>
+          )}
 
           <section>
             <div className="dash__section-head">
