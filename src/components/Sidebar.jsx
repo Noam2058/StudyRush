@@ -5,7 +5,7 @@ import { useLang } from '../context/LanguageContext.jsx'
 import { Logo } from './Logo.jsx'
 
 export function Sidebar() {
-  const { user } = useUser()
+  const { user, signOut } = useUser()
   const { t, lang, toggle } = useLang()
   const initial = (user.name || '?').trim().charAt(0).toUpperCase()
 
