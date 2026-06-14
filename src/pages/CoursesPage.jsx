@@ -1,18 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { Plus, BookOpen, FileText, Trash2, Search } from 'lucide-react'
+import { Plus, BookOpen, Trash2, Search } from 'lucide-react'
 import { Sidebar } from '../components/Sidebar.jsx'
 import { BottomNav } from '../components/BottomNav.jsx'
 import { useLang } from '../context/LanguageContext.jsx'
 import { useNotebooks } from '../context/NotebooksContext.jsx'
-
-const COVERS = ['var(--cover-peach)', 'var(--cover-blue)', 'var(--cover-cream)', 'var(--cover-mint)']
-
-function coverFromId(id) {
-  let h = 0
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
-  return COVERS[h % COVERS.length]
-}
+import { NotebookCover } from '../components/NotebookCover.jsx'
 
 function SkeletonCard() {
   return (
@@ -92,14 +85,10 @@ export default function CoursesPage() {
                 </p>
               ) : (
                 <div className="course-grid">
-                  {filtered.map((nb) => {
-                    const cover = coverFromId(nb.id)
-                    return (
+                  {filtered.map((nb) => (
                       <div key={nb.id} className="course" style={{ position: 'relative', textAlign: 'start' }}>
                         <button onClick={() => navigate(`/notebooks/${nb.id}`)} style={{ all: 'unset', cursor: 'pointer', display: 'block', width: '100%' }}>
-                          <div className="course__cover" style={{ background: `repeating-linear-gradient(135deg, ${cover} 0 12px, color-mix(in oklab, ${cover} 80%, white) 12px 14px)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <FileText size={28} color="var(--color-primary)" />
-                          </div>
+                          <NotebookCover notebook={nb} />
                           <div className="course__title">{nb.title}</div>
                           <div className="course__meta" style={{ marginTop: 4 }}>{nb.category} · {nb.sources.length} {isHe ? 'קבצים' : 'files'} · {nb.questionCount}q</div>
                         </button>
@@ -107,8 +96,7 @@ export default function CoursesPage() {
                           <Trash2 size={14} />
                         </button>
                       </div>
-                    )
-                  })}
+                  ))}
                   <button className="course course--add" onClick={() => navigate('/upload')}>
                     <div className="course__add-inner"><Plus size={28} /><span>{t('dash.newCourse')}</span></div>
                   </button>

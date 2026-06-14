@@ -1,20 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
-import { Plus, ArrowLeft, Flame, Star, FileText } from 'lucide-react'
+import { Plus, ArrowLeft, Flame, Star } from 'lucide-react'
 import { Sidebar } from '../components/Sidebar.jsx'
 import { BottomNav } from '../components/BottomNav.jsx'
 import { useUser } from '../context/UserContext.jsx'
 import { useLang } from '../context/LanguageContext.jsx'
 import { useNotebooks } from '../context/NotebooksContext.jsx'
-
-const COVERS = ['var(--cover-peach)', 'var(--cover-blue)', 'var(--cover-cream)', 'var(--cover-mint)']
-
-
-function coverFromId(id) {
-  let h = 0
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
-  return COVERS[h % COVERS.length]
-}
+import { NotebookCover } from '../components/NotebookCover.jsx'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -90,18 +82,13 @@ export default function DashboardPage() {
               <Link to="/courses" className="dash__view-all">{t('common.viewAll')}</Link>
             </div>
             <div className="course-grid">
-              {notebooks.slice(0, 3).map((nb) => {
-                const cover = coverFromId(nb.id)
-                return (
-                  <button key={nb.id} className="course" onClick={() => navigate(`/notebooks/${nb.id}`)}>
-                    <div className="course__cover" style={{ background: `repeating-linear-gradient(135deg, ${cover} 0 12px, color-mix(in oklab, ${cover} 80%, white) 12px 14px)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <FileText size={26} color="var(--color-primary)" />
-                    </div>
-                    <div className="course__title">{nb.title}</div>
-                    <div className="course__meta">{nb.category} · {nb.questionCount}q</div>
-                  </button>
-                )
-              })}
+              {notebooks.slice(0, 3).map((nb) => (
+                <button key={nb.id} className="course" onClick={() => navigate(`/notebooks/${nb.id}`)}>
+                  <NotebookCover notebook={nb} />
+                  <div className="course__title">{nb.title}</div>
+                  <div className="course__meta">{nb.category} · {nb.questionCount}q</div>
+                </button>
+              ))}
               <button className="course course--add" onClick={() => navigate('/upload')}>
                 <div className="course__add-inner"><Plus size={28} /><span>{t('dash.newCourse')}</span></div>
               </button>
