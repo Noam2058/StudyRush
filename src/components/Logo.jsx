@@ -7,7 +7,8 @@ export function Logo({ height = 48, className = '' }) {
     </svg>`
   const fallback = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
 
-  const srcs = ['/logo.svg', '/logo.png']
+  // Prefer the original PNG (if present) so the app shows your supplied logo
+  const srcs = ['/logo.png', '/logo.svg']
 
   return (
     <img
@@ -19,13 +20,10 @@ export function Logo({ height = 48, className = '' }) {
       onError={(e) => {
         const img = e.currentTarget
         img.onerror = null
-        // try next source
-        const current = srcs.indexOf(img.src.replace(window.location.origin, ''))
-        if (current >= 0 && current < srcs.length - 1) {
-          img.src = srcs[current + 1]
-        } else {
-          img.src = fallback
-        }
+        // try next source: find which src in our list matches the current src
+        const cur = srcs.findIndex(s => img.src.endsWith(s))
+        if (cur >= 0 && cur < srcs.length - 1) img.src = srcs[cur + 1]
+        else img.src = fallback
       }}
     />
   )
