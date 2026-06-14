@@ -2,7 +2,15 @@ import { generateContent as dummyGenerateContent } from './dummyAI.js'
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const MODEL = 'llama-3.3-70b-versatile'
+// Safety caps to avoid exceeding Groq token limits (TPM or per-request size)
 const MAX_TEXT_CHARS = 48000
+const DEFAULT_MAX_OUTPUT_TOKENS = 2000 // reduce expected completion size
+const GROQ_TPM_LIMIT = Number(import.meta.env.VITE_GROQ_TPM_LIMIT) || 12000 // tokens per minute limit (safety)
+
+function estimateTokensFromChars(chars) {
+  // rough heuristic: 1 token ~= 4 chars (approx for natural text)
+  return Math.ceil(chars / 4)
+}
 
 function buildPrompt(title, language, questionCount, sourceText) {
   const langName = language === 'he' ? 'Hebrew' : 'English'
@@ -80,10 +88,30 @@ export async function generateContent({ title, language, questionCount, sourceTe
   const apiKey = import.meta.env.VITE_GROQ_API_KEY
 
   if (!apiKey) {
+    console.warn('[StudyRush] No VITE_GROQ_API_KEY found — using dummyAI')
     return dummyGenerateContent({ title, language, questionCount, sourceText })
   }
 
-  const prompt = buildPrompt(title, language, questionCount, sourceText)
+  console.log(`[StudyRush] Calling Groq API for "${title}" (${questionCount} questions, ${sourceText.length} chars)`)
+
+  // Build prompt but ensure the estimated tokens (prompt + expected completion)
+  // do not exceed the provider's tokens-per-minute limit. If necessary,
+  // progressively truncate the sourceText.
+  let truncatedText = sourceText.slice(0, MAX_TEXT_CHARS)
+  let prompt = buildPrompt(title, language, questionCount, truncatedText)
+  const maxCompletionTokens = DEFAULT_MAX_OUTPUT_TOKENS
+  let estimated = estimateTokensFromChars(prompt.length) + maxCompletionTokens
+
+  if (estimated > GROQ_TPM_LIMIT) {
+    console.warn(`[StudyRush] Estimated tokens (${estimated}) exceed GROQ_TPM_LIMIT (${GROQ_TPM_LIMIT}). Truncating source text.`)
+    // calculate allowed prompt chars so that estimated <= limit
+    const allowedPromptTokens = Math.max(256, GROQ_TPM_LIMIT - maxCompletionTokens)
+    const allowedChars = allowedPromptTokens * 4
+    truncatedText = truncatedText.slice(0, Math.min(truncatedText.length, allowedChars))
+    prompt = buildPrompt(title, language, questionCount, truncatedText)
+    estimated = estimateTokensFromChars(prompt.length) + maxCompletionTokens
+    console.log(`[StudyRush] After truncation estimated tokens: ${estimated}, prompt chars: ${prompt.length}`)
+  }
 
   let response
   try {
@@ -98,7 +126,7 @@ export async function generateContent({ title, language, questionCount, sourceTe
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
         temperature: 0.6,
-        max_tokens: 6000,
+        max_tokens: DEFAULT_MAX_OUTPUT_TOKENS,
       }),
     })
   } catch (err) {
@@ -123,6 +151,7 @@ export async function generateContent({ title, language, questionCount, sourceTe
     return dummyGenerateContent({ title, language, questionCount, sourceText })
   }
 
+  console.log(`[StudyRush] Groq responded — ${parsed.questions?.length ?? 0} questions generated`)
   return normalizeParsed(parsed, language, questionCount)
 }
 
