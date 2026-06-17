@@ -3,6 +3,7 @@
 > הפוך את הלמידה שלך למשחק — Turn your learning into a game.
 
 **🔗 אתר חי:** [study-rush-theta.vercel.app](https://study-rush-theta.vercel.app)
+
 **📦 GitHub:** [github.com/Noam2058/StudyRush](https://github.com/Noam2058/StudyRush)
 
 ---
