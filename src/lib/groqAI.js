@@ -3,7 +3,9 @@ import { generateContent as dummyGenerateContent } from './dummyAI.js'
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const MODEL = 'llama-3.3-70b-versatile'
 const MAX_TEXT_CHARS = 6000   // ~1500 tokens of source text
-const MAX_OUTPUT_TOKENS = 3500
+const BASE_OUTPUT_TOKENS = 1200   // summary budget
+const TOKENS_PER_QUESTION = 600   // per question with options + explanations
+const MAX_OUTPUT_TOKENS = 8000    // hard cap (model supports 32K)
 
 function buildPrompt(title, language, questionCount, sourceText) {
   const lang = language === 'he' ? 'Hebrew' : 'English'
@@ -77,7 +79,7 @@ export async function generateContent({ title, language, questionCount, sourceTe
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
         temperature: 0.6,
-        max_tokens: MAX_OUTPUT_TOKENS,
+        max_tokens: Math.min(MAX_OUTPUT_TOKENS, BASE_OUTPUT_TOKENS + questionCount * TOKENS_PER_QUESTION),
       }),
     })
   } catch (err) {
