@@ -2,10 +2,10 @@ import { generateContent as dummyGenerateContent } from './dummyAI.js'
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const MODEL = 'llama-3.3-70b-versatile'
-const MAX_TEXT_CHARS = 12000  // ~3000 tokens of source text
-const BASE_OUTPUT_TOKENS = 2500   // summary budget (~1800 words)
+const MAX_TEXT_CHARS = 6000   // ~3000 tokens for Hebrew (1 token ≈ 1 char in Hebrew)
+const BASE_OUTPUT_TOKENS = 2000   // summary budget (~1500 words)
 const TOKENS_PER_QUESTION = 600   // per question with options + explanations
-const MAX_OUTPUT_TOKENS = 8000    // hard cap (model supports 32K)
+const MAX_OUTPUT_TOKENS = 6000    // stays within Groq free-tier 12K TPM limit
 
 function buildPrompt(title, language, questionCount, sourceText) {
   const lang = language === 'he' ? 'Hebrew' : 'English'
@@ -15,7 +15,7 @@ function buildPrompt(title, language, questionCount, sourceText) {
 
 JSON schema:
 {
-  "summary": "string — comprehensive academic summary in ${lang}. REQUIREMENTS: (1) minimum 700 words, (2) cover EVERY topic and concept from the material — do not skip or abbreviate anything, (3) use ## for each major topic heading, (4) use ### for subtopics where relevant, (5) bold key terms with definitions using **term**: definition, (6) include a ## Key Terms section with bullet **term**: definition for every important term, (7) end with a ## Summary section that ties all topics together. Be thorough, detailed, and educational.",
+  "summary": "string — comprehensive academic summary in ${lang}. REQUIREMENTS: (1) minimum 500 words, write densely and thoroughly, (2) cover EVERY topic and concept from the material — do not skip or abbreviate anything, (3) use ## for each major topic heading, (4) use ### for subtopics where relevant, (5) bold key terms inline using **term**: definition, (6) include a ## Key Terms section listing every important term as **term**: definition, (7) end with a ## Summary section. Be thorough and educational.",
   "questions": [
     {
       "id": "q-1",
