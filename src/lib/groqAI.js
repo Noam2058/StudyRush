@@ -77,7 +77,6 @@ export async function generateContent({ title, language, questionCount, sourceTe
       body: JSON.stringify({
         model: MODEL,
         messages: [{ role: 'user', content: prompt }],
-        response_format: { type: 'json_object' },
         temperature: 0.6,
         max_tokens: Math.min(MAX_OUTPUT_TOKENS, BASE_OUTPUT_TOKENS + questionCount * TOKENS_PER_QUESTION),
       }),
@@ -96,9 +95,12 @@ export async function generateContent({ title, language, questionCount, sourceTe
   const data = await response.json()
   const raw = data.choices?.[0]?.message?.content ?? ''
 
+  // Strip markdown code fences the model sometimes adds despite not being asked
+  const jsonStr = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim()
+
   let parsed
   try {
-    parsed = JSON.parse(raw)
+    parsed = JSON.parse(jsonStr)
   } catch {
     console.warn('[StudyRush] Failed to parse Groq JSON response — falling back to dummyAI')
     return dummyGenerateContent({ title, language, questionCount, sourceText })
