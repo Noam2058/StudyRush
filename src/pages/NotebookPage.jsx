@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowRight, Play, FileText, Download, Sparkles, Loader2 } from 'lucide-react'
+import { ArrowRight, Play, FileText, Download, Sparkles, Loader2, Upload, X } from 'lucide-react'
 import { BottomNav } from '../components/BottomNav.jsx'
-import { useNotebooks } from '../context/NotebooksContext.jsx'
+import { useNotebooks, fileKindFromName } from '../context/NotebooksContext.jsx'
+import { extractText } from '../lib/extractText.js'
 import { useLang } from '../context/LanguageContext.jsx'
 import { exportSummaryAsWord } from '../lib/exportWord.js'
 
@@ -11,7 +12,7 @@ const REGEN_COUNTS = [5, 10, 15, 20]
 export default function NotebookPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { getNotebook, regenerateQuestions } = useNotebooks()
+  const { getNotebook, regenerateQuestions, addMaterial } = useNotebooks()
   const { lang } = useLang()
   const isHe = lang === 'he'
   const nb = getNotebook(id)
@@ -20,6 +21,43 @@ export default function NotebookPage() {
   const [regenBusy, setRegenBusy] = useState(false)
   const [regenSuccess, setRegenSuccess] = useState(null)
   const [regenError, setRegenError] = useState('')
+
+  const addFileRef = useRef(null)
+  const [addFiles, setAddFiles] = useState([])
+  const [addBusy, setAddBusy] = useState(false)
+  const [addSuccess, setAddSuccess] = useState(false)
+  const [addError, setAddError] = useState('')
+
+  const handleAddFiles = (e) => {
+    const picked = Array.from(e.target.files || [])
+    setAddFiles((prev) => [...prev, ...picked])
+    e.target.value = ''
+  }
+
+  const handleAddMaterial = async () => {
+    if (!addFiles.length) return
+    setAddBusy(true)
+    setAddSuccess(false)
+    setAddError('')
+    try {
+      const sources = await Promise.all(
+        addFiles.map(async (file) => ({
+          fileName: file.name,
+          kind: fileKindFromName(file.name),
+          size: file.size,
+          text: await extractText(file),
+        }))
+      )
+      await addMaterial(id, sources)
+      setAddFiles([])
+      setAddSuccess(true)
+    } catch (err) {
+      console.error(err)
+      setAddError(isHe ? 'שגיאה בעדכון הסיכום, נסה שוב' : 'Error updating summary, try again')
+    } finally {
+      setAddBusy(false)
+    }
+  }
 
   const handleRegen = async () => {
     setRegenBusy(true)
@@ -131,6 +169,70 @@ export default function NotebookPage() {
             </p>
           )}
         </div>
+
+        {nb.includeSummary && (
+          <div className="card">
+            <p className="section-label" style={{ marginBottom: 'var(--space-3)' }}>
+              {isHe ? 'הוסף חומר לסיכום' : 'Add material to summary'}
+            </p>
+            <p style={{ fontSize: 'var(--font-size-small)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
+              {isHe
+                ? 'העלה קבצים נוספים כדי לעדכן את הסיכום על בסיס כל החומר.'
+                : 'Upload additional files to regenerate the summary from all material.'}
+            </p>
+            <input
+              ref={addFileRef}
+              type="file"
+              multiple
+              accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.md"
+              style={{ display: 'none' }}
+              onChange={handleAddFiles}
+            />
+            <button
+              onClick={() => addFileRef.current?.click()}
+              disabled={addBusy}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--space-3) var(--space-4)', borderRadius: 'var(--radius-pill)', border: '2px dashed var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-action)', fontWeight: 600, fontSize: 'var(--font-size-small)', cursor: 'pointer', width: '100%', justifyContent: 'center', marginBottom: addFiles.length ? 'var(--space-3)' : 0 }}
+            >
+              <Upload size={16} /> {isHe ? 'בחר קבצים' : 'Choose files'}
+            </button>
+            {addFiles.length > 0 && (
+              <ul style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+                {addFiles.map((f, i) => (
+                  <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-2) var(--space-3)', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)' }}>
+                    <FileText size={16} color="var(--color-action)" />
+                    <span style={{ flex: 1, fontSize: 'var(--font-size-small)', fontWeight: 500 }}>{f.name}</span>
+                    <button
+                      onClick={() => setAddFiles((prev) => prev.filter((_, j) => j !== i))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', display: 'flex' }}
+                    >
+                      <X size={16} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button
+              onClick={handleAddMaterial}
+              disabled={addBusy || !addFiles.length}
+              className="btn btn--cta btn--full"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+            >
+              {addBusy
+                ? <><Loader2 size={18} className="spin" /> {isHe ? 'מעדכן סיכום…' : 'Updating summary…'}</>
+                : <><Sparkles size={18} /> {isHe ? 'עדכן סיכום' : 'Update summary'}</>}
+            </button>
+            {addSuccess && (
+              <p style={{ marginTop: 'var(--space-3)', fontSize: 'var(--font-size-small)', color: 'var(--color-correct)', fontWeight: 600, textAlign: 'center' }}>
+                {isHe ? 'הסיכום עודכן בהצלחה!' : 'Summary updated successfully!'}
+              </p>
+            )}
+            {addError && (
+              <p style={{ marginTop: 'var(--space-3)', fontSize: 'var(--font-size-small)', color: 'var(--color-error-accent)', textAlign: 'center' }}>
+                {addError}
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="card">
           <p className="section-label" style={{ marginBottom: 'var(--space-3)' }}>{isHe ? 'קבצים שהועלו' : 'Uploaded files'} ({nb.sources.length})</p>
