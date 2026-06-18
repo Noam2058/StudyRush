@@ -2,8 +2,8 @@ import { generateContent as dummyGenerateContent } from './dummyAI.js'
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const MODEL = 'llama-3.3-70b-versatile'
-const MAX_TEXT_CHARS = 6000   // ~1500 tokens of source text
-const BASE_OUTPUT_TOKENS = 1200   // summary budget
+const MAX_TEXT_CHARS = 12000  // ~3000 tokens of source text
+const BASE_OUTPUT_TOKENS = 2500   // summary budget (~1800 words)
 const TOKENS_PER_QUESTION = 600   // per question with options + explanations
 const MAX_OUTPUT_TOKENS = 8000    // hard cap (model supports 32K)
 
@@ -11,11 +11,11 @@ function buildPrompt(title, language, questionCount, sourceText) {
   const lang = language === 'he' ? 'Hebrew' : 'English'
   const text = sourceText.slice(0, MAX_TEXT_CHARS) || '(no text — use title only)'
 
-  return `You are an academic tutor. Return ONLY valid JSON (no markdown, no extra text).
+  return `You are an expert academic tutor writing a comprehensive study guide. Return ONLY valid JSON (no markdown fences, no extra text outside the JSON).
 
 JSON schema:
 {
-  "summary": "string — detailed academic summary in ${lang}, min 350 words, using ## headings: Introduction, 2-4 topic sections, Key Terms (bullet **term**: def), Summary",
+  "summary": "string — comprehensive academic summary in ${lang}. REQUIREMENTS: (1) minimum 700 words, (2) cover EVERY topic and concept from the material — do not skip or abbreviate anything, (3) use ## for each major topic heading, (4) use ### for subtopics where relevant, (5) bold key terms with definitions using **term**: definition, (6) include a ## Key Terms section with bullet **term**: definition for every important term, (7) end with a ## Summary section that ties all topics together. Be thorough, detailed, and educational.",
   "questions": [
     {
       "id": "q-1",
@@ -35,8 +35,9 @@ JSON schema:
 
 Rules:
 - All text in ${lang}
-- Generate exactly ${questionCount} questions based on the material
-- Mix question types: definitions, cause-effect, comparisons
+- Summary MUST cover ALL topics present in the material — scan the entire text and ensure nothing is omitted
+- Generate exactly ${questionCount} questions spread across different topics
+- Mix question types: definitions, cause-effect, comparisons, applications
 - Each option explanation: correct → why right, wrong → why wrong
 
 Title: "${title}"
