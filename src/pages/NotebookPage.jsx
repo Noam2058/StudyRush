@@ -12,7 +12,7 @@ const REGEN_COUNTS = [5, 10, 15, 20]
 export default function NotebookPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { getNotebook, regenerateQuestions, addMaterial } = useNotebooks()
+  const { getNotebook, regenerateQuestions, addMaterial, removeSource } = useNotebooks()
   const { lang } = useLang()
   const isHe = lang === 'he'
   const nb = getNotebook(id)
@@ -56,6 +56,23 @@ export default function NotebookPage() {
       setAddError(isHe ? 'שגיאה בעדכון הסיכום, נסה שוב' : 'Error updating summary, try again')
     } finally {
       setAddBusy(false)
+    }
+  }
+
+  const [sourceBusy, setSourceBusy] = useState(null) // fileName being deleted
+  const [sourceError, setSourceError] = useState('')
+
+  const handleRemoveSource = async (fileName) => {
+    if (!confirm(isHe ? `למחוק את "${fileName}" ולעדכן את הסיכום?` : `Delete "${fileName}" and update summary?`)) return
+    setSourceBusy(fileName)
+    setSourceError('')
+    try {
+      await removeSource(id, fileName)
+    } catch (err) {
+      console.error(err)
+      setSourceError(isHe ? 'שגיאה במחיקת הקובץ, נסה שוב' : 'Error deleting file, try again')
+    } finally {
+      setSourceBusy(null)
     }
   }
 
@@ -242,9 +259,27 @@ export default function NotebookPage() {
                 <FileText size={18} color="var(--color-action)" />
                 <span style={{ flex: 1, fontSize: 'var(--font-size-small)', fontWeight: 500 }}>{s.fileName}</span>
                 <span className="chip" style={{ textTransform: 'uppercase' }}>{s.kind}</span>
+                <button
+                  onClick={() => handleRemoveSource(s.fileName)}
+                  disabled={sourceBusy !== null}
+                  aria-label="delete source"
+                  style={{ background: 'none', border: 'none', cursor: sourceBusy !== null ? 'not-allowed' : 'pointer', color: sourceBusy === s.fileName ? 'var(--color-text-secondary)' : 'var(--color-error-accent)', display: 'flex', opacity: sourceBusy !== null && sourceBusy !== s.fileName ? 0.4 : 1 }}
+                >
+                  {sourceBusy === s.fileName ? <Loader2 size={16} className="spin" /> : <X size={16} />}
+                </button>
               </li>
             ))}
           </ul>
+          {sourceError && (
+            <p style={{ marginTop: 'var(--space-3)', fontSize: 'var(--font-size-small)', color: 'var(--color-error-accent)', textAlign: 'center' }}>
+              {sourceError}
+            </p>
+          )}
+          {sourceBusy && (
+            <p style={{ marginTop: 'var(--space-3)', fontSize: 'var(--font-size-small)', color: 'var(--color-text-secondary)', textAlign: 'center' }}>
+              {isHe ? 'מוחק ומעדכן סיכום…' : 'Deleting and updating summary…'}
+            </p>
+          )}
         </div>
       </main>
       <BottomNav />

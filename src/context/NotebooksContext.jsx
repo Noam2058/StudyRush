@@ -328,8 +328,46 @@ export function NotebooksProvider({ children }) {
     }))
   }, [notebooks])
 
+  const removeSource = useCallback(async (notebookId, fileName) => {
+    const nb = notebooks.find((n) => n.id === notebookId)
+    if (!nb) throw new Error('Notebook not found')
+
+    const sanitize = (v) => {
+      if (v == null) return v
+      try { return String(v).replace(/\u0000/g, '') } catch { return v }
+    }
+
+    const { error: delError } = await supabase
+      .from('notebook_sources')
+      .delete()
+      .eq('notebook_id', notebookId)
+      .eq('file_name', fileName)
+    if (delError) throw delError
+
+    const remaining = nb.sources.filter((s) => s.fileName !== fileName)
+
+    let newSummary = ''
+    if (nb.includeSummary && remaining.length > 0) {
+      const sourceText = joinSourceText(remaining)
+      const content = await generateContent({
+        title: nb.title,
+        language: nb.language,
+        questionCount: 1,
+        sourceText,
+      })
+      newSummary = sanitize(content.summary)
+    }
+
+    await supabase.from('notebooks').update({ summary: newSummary }).eq('id', notebookId)
+
+    setNotebooks((prev) => prev.map((n) => {
+      if (n.id !== notebookId) return n
+      return { ...n, sources: remaining, content: { ...n.content, summary: newSummary } }
+    }))
+  }, [notebooks])
+
   return (
-    <NotebooksContext.Provider value={{ notebooks, loading, createNotebook, removeNotebook, getNotebook, regenerateQuestions, addMaterial }}>
+    <NotebooksContext.Provider value={{ notebooks, loading, createNotebook, removeNotebook, getNotebook, regenerateQuestions, addMaterial, removeSource }}>
       {children}
     </NotebooksContext.Provider>
   )

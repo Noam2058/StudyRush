@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
-import { Plus, ArrowLeft, Flame, Star } from 'lucide-react'
+import { Plus, ArrowLeft, Flame, Star, Trash2 } from 'lucide-react'
 import { Sidebar } from '../components/Sidebar.jsx'
 import { BottomNav } from '../components/BottomNav.jsx'
 import { useUser } from '../context/UserContext.jsx'
@@ -13,7 +13,7 @@ export default function DashboardPage() {
   const { user, loading } = useUser()
   const { t, lang } = useLang()
   const isHe = lang === 'he'
-  const { notebooks } = useNotebooks()
+  const { notebooks, removeNotebook } = useNotebooks()
 
   useEffect(() => {
     if (!loading && (!user || !user.email)) {
@@ -83,11 +83,20 @@ export default function DashboardPage() {
             </div>
             <div className="course-grid">
               {notebooks.slice(0, 3).map((nb) => (
-                <button key={nb.id} className="course" onClick={() => navigate(`/notebooks/${nb.id}`)}>
-                  <NotebookCover notebook={nb} />
-                  <div className="course__title">{nb.title}</div>
-                  <div className="course__meta">{nb.category} · {nb.questionCount}q</div>
-                </button>
+                <div key={nb.id} className="course" style={{ position: 'relative', textAlign: 'start' }}>
+                  <button onClick={() => navigate(`/notebooks/${nb.id}`)} style={{ all: 'unset', cursor: 'pointer', display: 'block', width: '100%' }}>
+                    <NotebookCover notebook={nb} />
+                    <div className="course__title">{nb.title}</div>
+                    <div className="course__meta">{nb.category} · {nb.questionCount}q</div>
+                  </button>
+                  <button
+                    onClick={() => { if (confirm(isHe ? 'למחוק את המחברת?' : 'Delete this notebook?')) removeNotebook(nb.id) }}
+                    aria-label="delete"
+                    style={{ position: 'absolute', top: 8, insetInlineEnd: 8, background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-pill)', width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-error-accent)', cursor: 'pointer' }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               ))}
               <button className="course course--add" onClick={() => navigate('/upload')}>
                 <div className="course__add-inner"><Plus size={28} /><span>{t('dash.newCourse')}</span></div>
